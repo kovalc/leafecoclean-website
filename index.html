@@ -734,16 +734,59 @@
   document.body.appendChild(canvas);
   var ctx = canvas.getContext('2d');
   var w, h, dpr, flakes = [];
+  var CRYSTAL_SHARE = 0.4; // share of flakes drawn as six-pointed snowflakes (the rest are soft fluffy flakes)
+
+  // Draw each flake style once into a small image, then reuse it (keeps things smooth)
+  var SPRITE = 48;
+  function makeSprite(drawFn){
+    var c = document.createElement('canvas');
+    c.width = c.height = SPRITE;
+    var g = c.getContext('2d');
+    g.translate(SPRITE / 2, SPRITE / 2);
+    g.shadowColor = 'rgba(70,95,115,.45)'; // soft blurred shadow so white shows on light backgrounds
+    g.shadowBlur = 4;
+    drawFn(g);
+    return c;
+  }
+  var fluffy = makeSprite(function(g){
+    var grad = g.createRadialGradient(0, 0, 0, 0, 0, 10);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.55, 'rgba(255,255,255,.85)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.beginPath(); g.arc(0, 0, 10, 0, Math.PI * 2); g.fill();
+  });
+  var crystal = makeSprite(function(g){
+    g.strokeStyle = '#fff';
+    g.lineWidth = 2.2;
+    g.lineCap = 'round';
+    for (var i = 0; i < 6; i++){
+      g.save();
+      g.rotate(i * Math.PI / 3);
+      g.beginPath();
+      g.moveTo(0, 0); g.lineTo(0, -16);                    // main arm
+      g.moveTo(0, -7);  g.lineTo(-4.5, -11.5);             // little branches
+      g.moveTo(0, -7);  g.lineTo(4.5, -11.5);
+      g.moveTo(0, -11.5); g.lineTo(-3, -14.5);
+      g.moveTo(0, -11.5); g.lineTo(3, -14.5);
+      g.stroke();
+      g.restore();
+    }
+  });
 
   function makeFlake(startAnywhere){
+    var isCrystal = Math.random() < CRYSTAL_SHARE;
     return {
       x: Math.random() * w,
-      y: startAnywhere ? Math.random() * h : -10,
-      r: 1.2 + Math.random() * 2.6,           // size
-      speed: 0.35 + Math.random() * 0.9,      // fall speed
+      y: startAnywhere ? Math.random() * h : -20,
+      img: isCrystal ? crystal : fluffy,
+      size: isCrystal ? 10 + Math.random() * 10 : 5 + Math.random() * 7, // drawn size in px
+      speed: 0.35 + Math.random() * 0.8,      // fall speed
       drift: Math.random() * Math.PI * 2,     // side-to-side sway
       sway: 0.3 + Math.random() * 0.7,
-      alpha: 0.55 + Math.random() * 0.4
+      angle: Math.random() * Math.PI,
+      spin: isCrystal ? (Math.random() - 0.5) * 0.02 : 0,
+      alpha: 0.7 + Math.random() * 0.3
     };
   }
 
@@ -764,18 +807,17 @@
       f.drift += 0.01;
       f.y += f.speed;
       f.x += Math.sin(f.drift) * f.sway * 0.5;
-      if (f.y > h + 10) flakes[i] = f = makeFlake(false);
-      if (f.x > w + 10) f.x = -10; else if (f.x < -10) f.x = w + 10;
+      f.angle += f.spin;
+      if (f.y > h + 20) flakes[i] = f = makeFlake(false);
+      if (f.x > w + 20) f.x = -20; else if (f.x < -20) f.x = w + 20;
 
-      // soft green-gray outline so flakes show up on the light backgrounds
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r + 0.9, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(47,82,51,' + (f.alpha * 0.18) + ')';
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,' + f.alpha + ')';
-      ctx.fill();
+      var s = f.size * (SPRITE / 32); // sprite has padding around the flake for its shadow
+      ctx.save();
+      ctx.globalAlpha = f.alpha;
+      ctx.translate(f.x, f.y);
+      ctx.rotate(f.angle);
+      ctx.drawImage(f.img, -s / 2, -s / 2, s, s);
+      ctx.restore();
     }
     requestAnimationFrame(tick);
   }
