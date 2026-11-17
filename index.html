@@ -203,6 +203,10 @@
   .stars{color:var(--gold);letter-spacing:2px;margin-bottom:14px;font-size:1.05rem;}
   .quote p{font-size:1.04rem;color:var(--ink);margin-bottom:18px;}
   .quote .who{font-weight:600;font-size:.95rem;color:var(--evergreen);}
+  .quote .who a{color:inherit;text-decoration:none;}
+  .quote .who a:hover{text-decoration:underline;}
+  .quote .more{font-size:.88rem;color:var(--evergreen);font-weight:600;}
+  .reviews-credit{text-align:center;margin-top:22px;font-size:.9rem;color:var(--ink-soft);}
   .quote .where{font-size:.88rem;color:var(--ink-soft);}
 
   .faq-wrap{max-width:760px;margin:0 auto;}
@@ -582,11 +586,9 @@
   <section class="band band-sage" id="reviews">
     <div class="wrap">
       <div class="sec-head center reveal"><p class="eyebrow">Kind words</p><h2>Homeowners who made the switch</h2></div>
-      <div class="quotes">
-        <div class="quote reveal"><div class="stars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</div><p>&ldquo;My house has never felt so fresh, and I love that there's no chemical smell afterward. Perfect with little ones at home.&rdquo;</p><div class="who">Greg Wilson</div><div class="where">DeForest, WI</div></div>
-        <div class="quote reveal"><div class="stars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</div><p>&ldquo;Reliable, friendly, and thorough. They treat my home like it's their own. Highly recommend.&rdquo;</p><div class="who">Emma Morrison</div><div class="where">Madison, WI</div></div>
-        <div class="quote reveal"><div class="stars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</div><p>&ldquo;Booked a move-out clean and got my full deposit back. Worth every penny &mdash; I'll be back!&rdquo;</p><div class="who">Julia Walter</div><div class="where">Sun Prairie, WI</div></div>
-      </div>
+      <!-- Filled in automatically from Google reviews (see the script near the bottom of the page) -->
+      <div class="quotes" id="google-reviews" hidden></div>
+      <p class="reviews-credit" id="reviews-credit" hidden></p>
       <div style="text-align:center;margin-top:34px;">
         <a href="https://g.page/r/CbO6iWnoLIklECE/review" target="_blank" rel="noopener" class="btn btn-primary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -712,6 +714,160 @@
   drawer.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){drawer.classList.remove('open');menuBtn.setAttribute('aria-expanded','false');});});
   var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:0.12});
   document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+</script>
+
+<!-- WINTER SNOW
+     SNOW = 'auto' shows snow from November through February only.
+     Change to 'on' to always show it, or 'off' to turn it off completely. -->
+<script>
+(function(){
+  var SNOW = 'auto';
+  var WINTER_MONTHS = [10, 11, 0, 1]; // Nov, Dec, Jan, Feb (January = 0)
+
+  if (SNOW === 'off') return;
+  if (SNOW === 'auto' && WINTER_MONTHS.indexOf(new Date().getMonth()) === -1) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  var canvas = document.createElement('canvas');
+  canvas.setAttribute('aria-hidden', 'true');
+  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:40;';
+  document.body.appendChild(canvas);
+  var ctx = canvas.getContext('2d');
+  var w, h, dpr, flakes = [];
+
+  function makeFlake(startAnywhere){
+    return {
+      x: Math.random() * w,
+      y: startAnywhere ? Math.random() * h : -10,
+      r: 1.2 + Math.random() * 2.6,           // size
+      speed: 0.35 + Math.random() * 0.9,      // fall speed
+      drift: Math.random() * Math.PI * 2,     // side-to-side sway
+      sway: 0.3 + Math.random() * 0.7,
+      alpha: 0.55 + Math.random() * 0.4
+    };
+  }
+
+  function resize(){
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = window.innerWidth; h = window.innerHeight;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var target = Math.min(90, Math.round(w / 16)); // fewer flakes on phones
+    while (flakes.length < target) flakes.push(makeFlake(true));
+    flakes.length = target;
+  }
+
+  function tick(){
+    ctx.clearRect(0, 0, w, h);
+    for (var i = 0; i < flakes.length; i++){
+      var f = flakes[i];
+      f.drift += 0.01;
+      f.y += f.speed;
+      f.x += Math.sin(f.drift) * f.sway * 0.5;
+      if (f.y > h + 10) flakes[i] = f = makeFlake(false);
+      if (f.x > w + 10) f.x = -10; else if (f.x < -10) f.x = w + 10;
+
+      // soft green-gray outline so flakes show up on the light backgrounds
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r + 0.9, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(47,82,51,' + (f.alpha * 0.18) + ')';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,' + f.alpha + ')';
+      ctx.fill();
+    }
+    requestAnimationFrame(tick);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(tick);
+})();
+</script>
+
+<!-- GOOGLE REVIEWS
+     Fill in the two values below. Until they're set (or if Google can't be reached),
+     the review cards stay hidden and only the "Leave us a Google review" button shows. -->
+<script>
+(function(){
+  var GOOGLE_API_KEY  = 'PASTE_API_KEY_HERE';
+  var GOOGLE_PLACE_ID = 'PASTE_PLACE_ID_HERE';
+  var MAX_REVIEWS = 3;   // how many cards to show
+  var MIN_STARS   = 4;   // only show reviews with at least this many stars
+  var MAX_CHARS   = 260; // longer reviews are shortened with a "Read more" link
+
+  if (GOOGLE_API_KEY.indexOf('PASTE_') === 0 || GOOGLE_PLACE_ID.indexOf('PASTE_') === 0) return;
+
+  var grid = document.getElementById('google-reviews');
+  var credit = document.getElementById('reviews-credit');
+
+  function el(tag, cls, text){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  window.initGoogleReviews = async function(){
+    try {
+      var lib = await google.maps.importLibrary('places');
+      var place = new lib.Place({ id: GOOGLE_PLACE_ID });
+      await place.fetchFields({ fields: ['reviews', 'rating', 'userRatingCount', 'googleMapsURI'] });
+
+      var reviews = (place.reviews || []).filter(function(r){
+        return r.rating >= MIN_STARS && r.text;
+      }).slice(0, MAX_REVIEWS);
+      if (!reviews.length) return;
+
+      reviews.forEach(function(r){
+        var card = el('div', 'quote reveal in');
+        var stars = el('div', 'stars', '★'.repeat(Math.round(r.rating)));
+        stars.setAttribute('aria-label', r.rating + ' out of 5 stars');
+        card.appendChild(stars);
+
+        var text = r.text.trim();
+        var long = text.length > MAX_CHARS;
+        if (long) text = text.slice(0, MAX_CHARS).replace(/\s+\S*$/, '') + '…';
+        card.appendChild(el('p', null, '“' + text + '”'));
+
+        var author = r.authorAttribution || {};
+        var who = el('div', 'who');
+        if (author.uri) {
+          var a = el('a', null, author.displayName || 'Google user');
+          a.href = author.uri; a.target = '_blank'; a.rel = 'noopener';
+          who.appendChild(a);
+        } else {
+          who.textContent = author.displayName || 'Google user';
+        }
+        card.appendChild(who);
+        card.appendChild(el('div', 'where', r.relativePublishTimeDescription || 'Google review'));
+
+        if (long && place.googleMapsURI) {
+          var more = el('a', 'more', 'Read more on Google');
+          more.href = place.googleMapsURI; more.target = '_blank'; more.rel = 'noopener';
+          card.appendChild(more);
+        }
+        grid.appendChild(card);
+      });
+      grid.hidden = false;
+
+      if (place.rating && place.userRatingCount) {
+        credit.textContent = place.rating.toFixed(1) + ' ★ average from ' +
+          place.userRatingCount + ' Google review' + (place.userRatingCount === 1 ? '' : 's');
+        credit.hidden = false;
+      }
+    } catch (err) {
+      console.warn('Google reviews could not be loaded:', err);
+    }
+  };
+
+  var s = document.createElement('script');
+  s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(GOOGLE_API_KEY) +
+          '&v=weekly&loading=async&callback=initGoogleReviews';
+  s.async = true;
+  document.head.appendChild(s);
+})();
 </script>
 </body>
 </html>
